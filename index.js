@@ -44,7 +44,7 @@ function executePart1() {
         if (index === buttons.length - 1) {
           resolve();
         }
-      }, 1000);
+      }, index * 1000);
     });
   });
 }
@@ -63,6 +63,8 @@ async function executePart2() {
         const check = qDiv.children[1].children[0].children[1].children[0];
 
         simulateTyping(textInp, answer, check, 100);
+
+        setTimeout(() => resolve(), 500);
       }, 1000);
     });
   }
