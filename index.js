@@ -13,26 +13,7 @@
   }
   
   clickRadioButtonsWithDelay();
-  
-  function simulateTyping(textArea, text, button, delay = 100) {
-    let index = 0;
-  
-    function typeCharacter() {
-      if (index < text.length) {
-        textArea.value += text[index];
-        textArea.dispatchEvent(new Event("input"));
-        index++;
-        setTimeout(typeCharacter, delay);
-      } else {
-        setTimeout(() => {
-          button.click();
-          button.dispatchEvent(new Event("click"));
-        }, 100);
-      }
-    }
-  
-    typeCharacter();
-  }
+
   
   function executePart1() {
     return new Promise((resolve) => {
@@ -50,30 +31,80 @@
     });
   }
   
-  async function executePart2() {
-    const questions = Array.from(
-      document.getElementsByClassName("short-answer-question"),
-    );
-    for (const question of questions) {
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          const qDiv = question.children[0];
-          const textInp =
-            qDiv.children[1].children[0].children[0].children[0].children[0];
-          const answer = question.children[1].children[1].children[0].innerText;
-          const check = qDiv.children[1].children[0].children[1].children[0];
-  
-          simulateTyping(textInp, answer, check, 100);
-  
-          setTimeout(() => resolve(), 500);
-        }, 1000);
-      });
-    }
-  }
+
   
   async function main() {
     await executePart1();
-    await executePart2();
+(async () => {
+  // 1) Double-click each Show-Answer for short answers
+  const saButtons = Array.from(
+    document.querySelectorAll('.short-answer-question .show-answer-button')
+  );
+  saButtons.forEach((btn, i) =>
+    setTimeout(() => {
+      btn.click();
+      btn.click();
+      console.log(`Revealed SA #${i+1}`);
+    }, i * 200)
+  );
+
+  // wait for answers to appear
+  await new Promise(r => setTimeout(r, saButtons.length * 200 + 300));
+
+  // 2) Fill & check each short-answer
+  document.querySelectorAll('.short-answer-question').forEach((q, i) => {
+    const input     = q.querySelector('.zb-input');
+    const answerEl  = q.querySelector('.forfeit-answer');
+    const checkBtn  = q.querySelector('.check-button');
+    if (!input || !answerEl || !checkBtn) {
+      console.warn(`Skipping SA #${i+1}: missing element`);
+      return;
+    }
+    const ans = answerEl.innerText.trim();
+    input.value = ans;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    console.log(`Filled SA #${i+1} → "${ans}"`);
+
+    // small delay before clicking check
+    setTimeout(() => {
+      checkBtn.click();
+      console.log(`Clicked Check on SA #${i+1}`);
+    }, 100);
+  });
+
+  // 3) Auto-select & check each MCQ (where a check-button exists)
+  document.querySelectorAll('.multiple-choice-question').forEach((q, i) => {
+    const answerEl = q.querySelector('.forfeit-answer');
+    const checkBtn = q.closest('.multiple-choice-content-resource')
+                      ?.querySelector('.check-button');
+    if (!answerEl) {
+      console.warn(`No MCQ answer revealed for #${i+1}`);
+      return;
+    }
+    const ans = answerEl.innerText.trim();
+    const radios = Array.from(q.querySelectorAll('.zb-radio-button'));
+    const match  = radios.find(r =>
+      r.querySelector('label').innerText.trim() === ans
+    );
+    if (match) {
+      const radio = match.querySelector('input[type=radio]');
+      radio.click();
+      console.log(`Selected MCQ #${i+1} → "${ans}"`);
+    } else {
+      console.warn(`MCQ #${i+1}: no choice matching "${ans}"`);
+    }
+
+    if (checkBtn) {
+      setTimeout(() => {
+        checkBtn.click();
+        console.log(`Clicked Check on MCQ #${i+1}`);
+      }, 100);
+    }
+  });
+
+  console.log('✅ All answers filled/selected and “Check” clicked.');
+})();
+
     console.log("All done!");
   }
   
